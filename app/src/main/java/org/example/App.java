@@ -1,11 +1,8 @@
 package org.example;
 
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
-
     public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+        LemonadeGame game = new LemonadeGame(new LemonadeStand(), new RandomCustomerSource());
+        game.run();
     }
 }
