@@ -62,4 +62,12 @@ class RecipeTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new Recipe(recipe.lemons(), recipe.sugar(), -1));
     }
+
+    @Test
+    void allowsAllPositiveValues() {
+        Recipe validRecipe = new Recipe(1, 2, 3);
+        assertEquals(1, validRecipe.lemons());
+        assertEquals(2, validRecipe.sugar());
+        assertEquals(3, validRecipe.water());
+    }
 }
