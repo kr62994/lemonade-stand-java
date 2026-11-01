@@ -13,6 +13,20 @@ class CashAccountTest {
     }
 
     @Test
+    void depositCanReachMaximumBalance() {
+        account.deposit(Long.MAX_VALUE - account.balanceCents());
+        assertEquals(Long.MAX_VALUE, account.balanceCents());
+        account.deposit(0);
+        assertEquals(Long.MAX_VALUE, account.balanceCents());
+    }
+
+    @Test
+    void rejectsDepositOverflowWithoutChangingBalance() {
+        assertThrows(IllegalArgumentException.class, () -> account.deposit(Long.MAX_VALUE));
+        assertEquals(10000, account.balanceCents());
+    }
+
+    @Test
     void startsWithGivenBalance() {
         assertEquals(10000, account.balanceCents());
     }

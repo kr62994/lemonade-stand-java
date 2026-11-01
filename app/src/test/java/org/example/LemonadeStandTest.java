@@ -13,6 +13,88 @@ class LemonadeStandTest {
     }
 
     @Test
+    void rejectsIngredientInventoryOverflowBeforeCharging() {
+        CashAccount account = new CashAccount(Long.MAX_VALUE);
+        LemonadeStand largeStand = new LemonadeStand(account);
+        largeStand.purchase(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        long balance = account.balanceCents();
+        assertThrows(IllegalArgumentException.class, () -> largeStand.purchase(1, 0));
+        assertThrows(IllegalArgumentException.class, () -> largeStand.purchase(0, 1));
+        assertEquals(Integer.MAX_VALUE, largeStand.lemons());
+        assertEquals(Integer.MAX_VALUE, largeStand.sugar());
+        assertEquals(balance, account.balanceCents());
+        assertEquals(Long.MAX_VALUE - Integer.MAX_VALUE * 150L, balance);
+    }
+
+    @Test
+    void hugeRecipeAndBatchCannotWrapIngredientRequirements() {
+        stand.purchase(10, 10);
+        stand.setRecipe(new Recipe(Integer.MAX_VALUE, 1, 1));
+        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(2));
+        stand.setRecipe(new Recipe(1, Integer.MAX_VALUE, 1));
+        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(2));
+        stand.setRecipe(new Recipe(3, 1, 6));
+        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(Integer.MAX_VALUE));
+        assertEquals(10, stand.lemons());
+        assertEquals(10, stand.sugar());
+        assertEquals(0, stand.pitchers());
+    }
+
+    @Test
+    void rejectsCupOverflowBeforeConsumingIngredients() {
+        LemonadeStand largeStand = new LemonadeStand(new CashAccount(Long.MAX_VALUE));
+        largeStand.purchase(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        largeStand.setRecipe(new Recipe(1, 1, Integer.MAX_VALUE));
+        int maximumPitchers = Integer.MAX_VALUE / LemonadeStand.CUPS_PER_PITCHER;
+        assertThrows(IllegalArgumentException.class, () -> largeStand.makePitchers(maximumPitchers + 1));
+        assertEquals(Integer.MAX_VALUE, largeStand.lemons());
+        largeStand.makePitchers(maximumPitchers);
+        int remainingLemons = largeStand.lemons();
+        assertThrows(IllegalArgumentException.class, () -> largeStand.makePitchers(1));
+        assertEquals(remainingLemons, largeStand.lemons());
+        assertEquals(maximumPitchers, largeStand.pitchers());
+        largeStand.setPrice(1);
+        SalesResult result = largeStand.sell(1);
+        assertEquals(maximumPitchers * 8 - 1, result.wastedCups());
+    }
+
+    @Test
+    void rejectsPricesThatCouldOverflowDailyRevenue() {
+        assertThrows(IllegalArgumentException.class, () -> stand.setPrice(LemonadeStand.MAX_PRICE_CENTS + 1));
+        assertThrows(IllegalArgumentException.class, () -> stand.setPrice(Long.MAX_VALUE));
+        assertEquals(100, stand.priceCents());
+    }
+
+    @Test
+    void maximumPriceCanProduceFiveHundredSalesWithoutOverflow() {
+        CashAccount emptyAccount = new CashAccount(9450);
+        LemonadeStand salesStand = new LemonadeStand(emptyAccount);
+        salesStand.setRecipe(new Recipe(1, 1, 1));
+        salesStand.purchase(63, 63);
+        salesStand.makePitchers(63);
+        salesStand.setPrice(LemonadeStand.MAX_PRICE_CENTS);
+        SalesResult result = salesStand.sell(500);
+        assertEquals(500, result.cupsSold());
+        assertEquals(500 * LemonadeStand.MAX_PRICE_CENTS, result.revenueCents());
+        assertEquals(result.revenueCents(), emptyAccount.balanceCents());
+        assertEquals(4, result.wastedCups());
+    }
+
+    @Test
+    void rejectedRevenueDepositPreservesCashAndPreparedPitchers() {
+        CashAccount account = new CashAccount(Long.MAX_VALUE);
+        LemonadeStand richStand = new LemonadeStand(account);
+        richStand.purchase(3, 1);
+        richStand.makePitchers(1);
+        long balance = account.balanceCents();
+        assertThrows(IllegalArgumentException.class, () -> richStand.sell(8));
+        assertEquals(balance, account.balanceCents());
+        assertEquals(1, richStand.pitchers());
+        richStand.setPrice(1);
+        assertEquals(8, richStand.sell(8).cupsSold());
+    }
+
+    @Test
     void startsWithDefaultState() {
         assertEquals(10000, stand.cashCents());
         assertEquals(0, stand.lemons());

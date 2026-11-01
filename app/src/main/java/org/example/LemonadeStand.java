@@ -2,6 +2,7 @@ package org.example;
 
 public class LemonadeStand {
     public static final int CUPS_PER_PITCHER = 8;
+    public static final long MAX_PRICE_CENTS = Long.MAX_VALUE / 500;
     private final CashAccount account;
     private int lemons;
     private int sugar;
@@ -32,6 +33,9 @@ public class LemonadeStand {
         if (lemonCount < 0 || sugarCount < 0)
             throw new IllegalArgumentException("Purchase quantities cannot be negative.");
         long cost = lemonCount * 100L + sugarCount * 50L;
+        if (lemonCount > Integer.MAX_VALUE - lemons || sugarCount > Integer.MAX_VALUE - sugar) {
+            throw new IllegalArgumentException("That purchase would exceed the maximum ingredient inventory.");
+        }
         account.pay(cost);
         lemons += lemonCount;
         sugar += sugarCount;
@@ -43,17 +47,19 @@ public class LemonadeStand {
     }
 
     public void setPrice(long cents) {
-        if (cents < 1)
-            throw new IllegalArgumentException("Price must be positive.");
+        if (cents < 1 || cents > MAX_PRICE_CENTS)
+            throw new IllegalArgumentException("Price must be from 1 to " + MAX_PRICE_CENTS + " cents.");
         priceCents = cents;
     }
 
     public void makePitchers(int count) {
         if (count < 1) throw new IllegalArgumentException("Make at least one pitcher.");
+        if (count > lemons / recipe.lemons() || count > sugar / recipe.sugar())
+            throw new IllegalArgumentException("You do not have enough lemons or sugar for those pitchers.");
+        if (count > Integer.MAX_VALUE / CUPS_PER_PITCHER - pitchers)
+            throw new IllegalArgumentException("That many pitchers would exceed the maximum cup inventory.");
         int neededLemons = recipe.lemons() * count;
         int neededSugar = recipe.sugar() * count;
-        if (neededLemons > lemons || neededSugar > sugar)
-            throw new IllegalArgumentException("You do not have enough lemons or sugar for those pitchers.");
         lemons -= neededLemons;
         sugar -= neededSugar;
         pitchers += count;

@@ -28,6 +28,9 @@ public class CashAccount {
         if (cents < 0) {
             throw new IllegalArgumentException("Deposit cannot be negative.");
         }
+        if (cents > Long.MAX_VALUE - balanceCents) {
+            throw new IllegalArgumentException("That deposit would exceed the maximum account balance.");
+        }
         balanceCents += cents;
     }
 }
