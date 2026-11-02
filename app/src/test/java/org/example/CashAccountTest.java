@@ -84,4 +84,42 @@ class CashAccountTest {
         account.deposit(0);
         assertEquals(10000, account.balanceCents());
     }
+
+    @Test
+    void mandatoryExpensesCanReachZeroAndThenCreateDebt() {
+        account.chargeExpense(10000);
+        assertEquals(0, account.balanceCents());
+        account.chargeExpense(500);
+        assertEquals(-500, account.balanceCents());
+        account.chargeExpense(0);
+        account.deposit(200);
+        assertEquals(-300, account.balanceCents());
+        account.deposit(300);
+        assertEquals(0, account.balanceCents());
+    }
+
+    @Test
+    void rejectsNegativeExpenseWithoutChangingBalance() {
+        assertThrows(IllegalArgumentException.class, () -> account.chargeExpense(-1));
+        assertEquals(10000, account.balanceCents());
+    }
+
+    @Test
+    void expenseCannotWrapDebtIntoPositiveBalance() {
+        CashAccount debt = new CashAccount(0);
+        debt.chargeExpense(Long.MAX_VALUE);
+        debt.chargeExpense(1);
+        assertEquals(Long.MIN_VALUE, debt.balanceCents());
+        assertThrows(IllegalArgumentException.class, () -> debt.chargeExpense(1));
+        assertEquals(Long.MIN_VALUE, debt.balanceCents());
+        debt.deposit(Long.MAX_VALUE);
+        assertEquals(-1, debt.balanceCents());
+    }
+
+    @Test
+    void purchasesCannotIncreaseDebt() {
+        account.chargeExpense(10500);
+        assertThrows(IllegalArgumentException.class, () -> account.pay(1));
+        assertEquals(-500, account.balanceCents());
+    }
 }

@@ -105,6 +105,28 @@ class LemonadeStandTest {
     }
 
     @Test
+    void rentIsFixedAndChargedToTheSuppliedAccount() {
+        CashAccount account = new CashAccount(10000);
+        LemonadeStand rentedStand = new LemonadeStand(account);
+        rentedStand.payRent();
+        rentedStand.payRent();
+        assertEquals(10000 - 2 * LemonadeStand.DAILY_RENT_CENTS, account.balanceCents());
+        assertFalse(rentedStand.isBankrupt());
+    }
+
+    @Test
+    void exactlyZeroAfterRentContinuesButOneCentBelowEndsTheGame() {
+        LemonadeStand zeroStand = new LemonadeStand(new CashAccount(LemonadeStand.DAILY_RENT_CENTS));
+        zeroStand.payRent();
+        assertEquals(0, zeroStand.cashCents());
+        assertFalse(zeroStand.isBankrupt());
+        LemonadeStand poorStand = new LemonadeStand(new CashAccount(LemonadeStand.DAILY_RENT_CENTS - 1));
+        poorStand.payRent();
+        assertEquals(-1, poorStand.cashCents());
+        assertTrue(poorStand.isBankrupt());
+    }
+
+    @Test
     void rejectsMissingAccount() {
         assertThrows(IllegalArgumentException.class, () -> new LemonadeStand(null));
     }

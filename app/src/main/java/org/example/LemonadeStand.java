@@ -2,6 +2,7 @@ package org.example;
 
 public class LemonadeStand {
     public static final int CUPS_PER_PITCHER = 8;
+    public static final long DAILY_RENT_CENTS = 500;
     public static final long MAX_PRICE_CENTS = Long.MAX_VALUE / 500;
     private final CashAccount account;
     private int lemons;
@@ -28,6 +29,14 @@ public class LemonadeStand {
     public int pitchers() { return pitchers; }
     public long priceCents() { return priceCents; }
     public Recipe recipe() { return recipe; }
+
+    public void payRent() {
+        account.chargeExpense(DAILY_RENT_CENTS);
+    }
+
+    public boolean isBankrupt() {
+        return cashCents() < 0;
+    }
 
     public void purchase(int lemonCount, int sugarCount) {
         if (lemonCount < 0 || sugarCount < 0)

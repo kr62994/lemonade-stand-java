@@ -73,6 +73,13 @@ public class LemonadeGame {
         System.out.println("Welcome to My Lemonade Stand!");
         try {
             for (int day = 1; ; day++) {
+                stand.payRent();
+                System.out.printf("%nDay %d: Paid %s in rent. Cash: %s.%n", day, money(LemonadeStand.DAILY_RENT_CENTS),
+                        money(stand.cashCents()));
+                if (stand.isBankrupt()) {
+                    System.out.printf("Game over! You made it to day %d before going bankrupt!%n", day);
+                    return;
+                }
                 System.out.printf("%nDay %d: Preparation Phase%n", day);
                 boolean preparing = true;
                 while (preparing) {
