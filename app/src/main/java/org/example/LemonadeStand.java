@@ -10,7 +10,7 @@ public class LemonadeStand {
     private int water; // for updates
     private int pitchers;
     private long priceCents = 100;
-    private Recipe recipe = new Recipe(3, 1, 6); // initial recipe
+    private Recipe recipe = new Recipe(0, 0, 8);
 
     public LemonadeStand() {
         this(new CashAccount(10_000));
@@ -63,7 +63,7 @@ public class LemonadeStand {
 
     public void makePitchers(int count) {
         if (count < 1) throw new IllegalArgumentException("Make at least one pitcher.");
-        if (count > lemons / recipe.lemons() || count > sugar / recipe.sugar())
+        if ((long) count * recipe.lemons() > lemons || (long) count * recipe.sugar() > sugar)
             throw new IllegalArgumentException("You do not have enough lemons or sugar for those pitchers.");
         if (count > Integer.MAX_VALUE / CUPS_PER_PITCHER - pitchers)
             throw new IllegalArgumentException("That many pitchers would exceed the maximum cup inventory.");

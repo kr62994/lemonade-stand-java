@@ -121,7 +121,7 @@ public class LemonadeGame {
         System.out.println("Water (Cups): Infinity");
         System.out.printf("Current Pitchers: %d%n", stand.pitchers());
         System.out.printf("Cash: %s%n", money(stand.cashCents()));
-        System.out.printf("Recipe per pitcher: %d lemons, %d sugar, %d water%n",
+        System.out.printf("Recipe per pitcher: %d lemons, %d sugar, %s cups of water%n",
                 stand.recipe().lemons(), stand.recipe().sugar(), stand.recipe().water());
         System.out.printf("Price per cup: %s%n", money(stand.priceCents()));
         System.out.printf("%n1. Purchase Ingredients%n2. Tweak the Recipe%n3. Set the Price%n"
@@ -152,9 +152,9 @@ public class LemonadeGame {
             }
             try {
                 stand.makePitchers(count);
-                long water = (long) count * stand.recipe().water();
+                double water = count * stand.recipe().water();
                 System.out.printf(
-                        "Made %d pitchers using %d lemons, %d cups of sugar, and %d cups of water.%n",
+                        "Made %d pitchers using %d lemons, %d cups of sugar, and %s cups of water.%n",
                         count, count * stand.recipe().lemons(), count * stand.recipe().sugar(), water);
                 return;
             } catch (IllegalArgumentException exception) {
@@ -164,9 +164,10 @@ public class LemonadeGame {
     }
 
     private void tweakRecipe() {
-        int lemons = readQuantity("Lemons per pitcher? ", 1);
-        int sugar = readQuantity("Cups of sugar per pitcher? ", 1);
-        int water = readQuantity("Cups of water per pitcher? ", 1);
+        System.out.println("A lemon adds 0.25 cups; sugar adds 0.5 cups per cup. Water tops up to 8 cups.");
+        int lemons = readQuantity("Lemons per pitcher? ", 0);
+        int sugar = readQuantity("Cups of sugar per pitcher? ", 0);
+        int water = readQuantity("Cups of water per pitcher? ", 0);
         stand.setRecipe(new Recipe(lemons, sugar, water));
         System.out.println("Recipe set! This recipe applies to newly made pitchers.");
     }

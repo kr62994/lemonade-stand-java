@@ -10,6 +10,7 @@ class LemonadeStandTest {
     @BeforeEach
     void setUp() {
         stand = new LemonadeStand();
+        stand.setRecipe(new Recipe(3, 1, 6));
     }
 
     @Test
@@ -29,10 +30,12 @@ class LemonadeStandTest {
     @Test
     void hugeRecipeAndBatchCannotWrapIngredientRequirements() {
         stand.purchase(10, 10);
-        stand.setRecipe(new Recipe(Integer.MAX_VALUE, 1, 1));
-        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(2));
-        stand.setRecipe(new Recipe(1, Integer.MAX_VALUE, 1));
-        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(2));
+        Recipe original = stand.recipe();
+        assertThrows(IllegalArgumentException.class,
+                () -> stand.setRecipe(new Recipe(Integer.MAX_VALUE, 1, 1)));
+        assertThrows(IllegalArgumentException.class,
+                () -> stand.setRecipe(new Recipe(1, Integer.MAX_VALUE, 1)));
+        assertEquals(original, stand.recipe());
         stand.setRecipe(new Recipe(3, 1, 6));
         assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(Integer.MAX_VALUE));
         assertEquals(10, stand.lemons());
@@ -44,7 +47,7 @@ class LemonadeStandTest {
     void rejectsCupOverflowBeforeConsumingIngredients() {
         LemonadeStand largeStand = new LemonadeStand(new CashAccount(Long.MAX_VALUE));
         largeStand.purchase(Integer.MAX_VALUE, Integer.MAX_VALUE);
-        largeStand.setRecipe(new Recipe(1, 1, Integer.MAX_VALUE));
+        largeStand.setRecipe(new Recipe(1, 1, 0));
         int maximumPitchers = Integer.MAX_VALUE / LemonadeStand.CUPS_PER_PITCHER;
         assertThrows(IllegalArgumentException.class, () -> largeStand.makePitchers(maximumPitchers + 1));
         assertEquals(Integer.MAX_VALUE, largeStand.lemons());
@@ -84,6 +87,7 @@ class LemonadeStandTest {
     void rejectedRevenueDepositPreservesCashAndPreparedPitchers() {
         CashAccount account = new CashAccount(Long.MAX_VALUE);
         LemonadeStand richStand = new LemonadeStand(account);
+        richStand.setRecipe(new Recipe(3, 1, 6));
         richStand.purchase(3, 1);
         richStand.makePitchers(1);
         long balance = account.balanceCents();
@@ -101,7 +105,7 @@ class LemonadeStandTest {
         assertEquals(0, stand.sugar());
         assertEquals(0, stand.pitchers());
         assertEquals(100, stand.priceCents());
-        assertEquals(new Recipe(3, 1, 6), stand.recipe());
+        assertEquals(new Recipe(0, 0, 8), new LemonadeStand().recipe());
     }
 
     @Test
@@ -135,6 +139,7 @@ class LemonadeStandTest {
     void purchasesAndSalesUseSuppliedAccount() {
         CashAccount account = new CashAccount(10000);
         LemonadeStand otherStand = new LemonadeStand(account);
+        otherStand.setRecipe(new Recipe(3, 1, 6));
         otherStand.purchase(3, 1);
         assertEquals(9650, account.balanceCents());
         otherStand.makePitchers(1);
@@ -187,7 +192,7 @@ class LemonadeStandTest {
 
     @Test
     void recipeCanBeChangedMultipleTimes() {
-        stand.setRecipe(new Recipe(5, 2, 6));
+        stand.setRecipe(new Recipe(5, 2, 5));
         stand.setRecipe(new Recipe(1, 1, 4));
         assertEquals(new Recipe(1, 1, 4), stand.recipe());
     }
@@ -264,7 +269,7 @@ class LemonadeStandTest {
 
     @Test
     void salesCreditRevenueDiscardLeftoversAndKeepUnusedIngredients() {
-        stand.setRecipe(new Recipe(5, 2, 6));
+        stand.setRecipe(new Recipe(5, 2, 5));
         stand.purchase(50, 40);
         stand.makePitchers(8);
         SalesResult result = stand.sell(30);
@@ -320,5 +325,52 @@ class LemonadeStandTest {
         stand.makePitchers(1);
         stand.sell(1);
         assertEquals(100, stand.cashCents());
+    }
+
+    @Test
+    void startingWaterRecipeNeedsNoPurchasedIngredients() {
+        LemonadeStand waterStand = new LemonadeStand();
+        waterStand.makePitchers(2);
+        assertEquals(2, waterStand.pitchers());
+        assertEquals(0, waterStand.lemons());
+        assertEquals(0, waterStand.sugar());
+        assertEquals(10000, waterStand.cashCents());
+        assertEquals(16, waterStand.sell(20).cupsSold());
+    }
+
+    @Test
+    void recipesCanUseOnlyLemonsOrOnlySugar() {
+        stand.purchase(4, 4);
+        stand.setRecipe(new Recipe(0, 2, 0));
+        stand.makePitchers(2);
+        assertEquals(4, stand.lemons());
+        assertEquals(0, stand.sugar());
+        stand.setRecipe(new Recipe(2, 0, 0));
+        stand.makePitchers(2);
+        assertEquals(0, stand.lemons());
+        assertEquals(4, stand.pitchers());
+    }
+
+    @Test
+    void overfilledRecipeLeavesExistingRecipeAndPreparedStockUnchanged() {
+        stand.purchase(3, 1);
+        stand.makePitchers(1);
+        Recipe original = stand.recipe();
+        long cash = stand.cashCents();
+        assertThrows(IllegalArgumentException.class, () -> stand.setRecipe(new Recipe(3, 1, 7)));
+        assertSame(original, stand.recipe());
+        assertEquals(1, stand.pitchers());
+        assertEquals(cash, stand.cashCents());
+    }
+
+    @Test
+    void waterOnlyBatchesStillRespectCupLimit() {
+        stand.setRecipe(new Recipe(0, 0, 0));
+        int maximum = Integer.MAX_VALUE / LemonadeStand.CUPS_PER_PITCHER;
+        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(maximum + 1));
+        assertEquals(0, stand.pitchers());
+        stand.makePitchers(maximum);
+        assertThrows(IllegalArgumentException.class, () -> stand.makePitchers(1));
+        assertEquals(maximum, stand.pitchers());
     }
 }
