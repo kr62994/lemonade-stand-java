@@ -177,12 +177,30 @@ public class LemonadeGame {
         System.out.printf("%nDay %d: Selling Phase%n", day);
         System.out.printf("%d customers visited. You sold %d cups for %s.%n",
                 result.customers(), result.cupsSold(), money(result.revenueCents()));
+        showRecipeFeedback();
         System.out.printf("Customers without lemonade: %d.%n", result.customers() - result.cupsSold());
         System.out.printf("Discarded lemonade: %d pitchers + %d cups.%n",
                 result.wastedCups() / LemonadeStand.CUPS_PER_PITCHER,
                 result.wastedCups() % LemonadeStand.CUPS_PER_PITCHER);
         System.out.printf("Cash: %s%n", money(stand.cashCents()));
         System.out.println("Let's try again tomorrow!");
+    }
+
+    private void showRecipeFeedback() {
+        double multiplier = stand.recipe().customerMultiplier();
+        if (multiplier == 0.0) {
+            System.out.println("No water! Nobody wants pure lemon juice. Customers: 0.0x.");
+        } else if (multiplier == 0.1) {
+            System.out.println("It's just water! Refreshing, but not lemonade. Customers: 0.1x.");
+        } else if (multiplier == 0.5) {
+            System.out.println("No sugar! Some customers enjoy lemon water. Customers: 0.5x.");
+        } else if (multiplier == 1.5) {
+            System.out.println("Perfect lemonade! Customers: 1.5x.");
+        } else if (multiplier == 1.25) {
+            System.out.println("Tasty lemonade! Your recipe is close to the ideal. Customers: 1.25x.");
+        } else {
+            System.out.println("Your recipe is ordinary. Try balancing sugar, lemon juice, and water. Customers: 1.0x.");
+        }
     }
 }
 

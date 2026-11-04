@@ -5,6 +5,51 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class RecipeTest {
     @Test
+    void missingWaterTakesPriorityOverMissingSugar() {
+        assertEquals(0.0, new Recipe(32, 0, 0).customerMultiplier());
+        assertEquals(0.0, new Recipe(0, 16, 0).customerMultiplier());
+        assertEquals(0.0, new Recipe(16, 8, 0).customerMultiplier());
+    }
+
+    @Test
+    void waterOnlyGetsOneTenthOfCustomers() {
+        assertEquals(0.1, new Recipe(0, 0, 0).customerMultiplier());
+    }
+
+    @Test
+    void unsweetenedLemonWaterGetsHalfOfCustomers() {
+        assertEquals(0.5, new Recipe(1, 0, 0).customerMultiplier());
+        assertEquals(0.5, new Recipe(31, 0, 0).customerMultiplier());
+    }
+
+    @Test
+    void matchingProportionsGetBestBonusBeforeCloseBonus() {
+        assertEquals(1.5, new Recipe(6, 1, 0).customerMultiplier());
+        assertEquals(1.5, new Recipe(7, 1, 0).customerMultiplier());
+    }
+
+    @Test
+    void nearbyRecipesGetSmallerBonus() {
+        assertEquals(1.25, new Recipe(8, 1, 0).customerMultiplier());
+    }
+
+    @Test
+    void recipesOutsideToleranceGetNoBonus() {
+        assertEquals(1.0, new Recipe(4, 1, 0).customerMultiplier());
+        assertEquals(1.0, new Recipe(5, 1, 0).customerMultiplier());
+        assertEquals(1.0, new Recipe(9, 1, 0).customerMultiplier());
+        assertEquals(1.0, new Recipe(0, 1, 0).customerMultiplier());
+        assertEquals(1.0, new Recipe(5, 2, 0).customerMultiplier());
+    }
+
+    @Test
+    void tasteUsesWaterAfterAutomaticTopUp() {
+        assertEquals(new Recipe(6, 1, 6).customerMultiplier(),
+                new Recipe(6, 1, 0).customerMultiplier());
+        assertEquals(1.5, new Recipe(6, 1, 0).customerMultiplier());
+    }
+
+    @Test
     void fillsEmptyRecipeWithWater() {
         assertEquals(new Recipe(0, 0, 8), new Recipe(0, 0, 0));
     }

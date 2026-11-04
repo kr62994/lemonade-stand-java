@@ -3,7 +3,7 @@ package org.example;
 public class LemonadeStand {
     public static final int CUPS_PER_PITCHER = 8;
     public static final long DAILY_RENT_CENTS = 500;
-    public static final long MAX_PRICE_CENTS = Long.MAX_VALUE / 500;
+    public static final long MAX_PRICE_CENTS = Long.MAX_VALUE / 750;
     private final CashAccount account;
     private int lemons;
     private int sugar;
@@ -77,6 +77,7 @@ public class LemonadeStand {
     public SalesResult sell(int customers) {
         if (customers < 1 || customers > 500)
             throw new IllegalArgumentException("Customer count must be between 1 and 500.");
+        customers = (int) (customers * recipe.customerMultiplier());
         int cups = pitchers * CUPS_PER_PITCHER;
         int sold = Math.min(cups, customers);
         long revenue = sold * priceCents;
