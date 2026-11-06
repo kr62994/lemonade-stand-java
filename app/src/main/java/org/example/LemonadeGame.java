@@ -80,6 +80,12 @@ public class LemonadeGame {
                     System.out.printf("Game over! You made it to day %d before going bankrupt!%n", day);
                     return;
                 }
+                if (day > 1) {
+                    stand.lemonMarket().advanceDay();
+                    stand.sugarMarket().advanceDay();
+                }
+                showMarketPrice(Ingredient.LEMON, stand.lemonMarket(), day);
+                showMarketPrice(Ingredient.SUGAR, stand.sugarMarket(), day);
                 System.out.printf("%nDay %d: Preparation Phase%n", day);
                 boolean preparing = true;
                 while (preparing) {
@@ -129,7 +135,8 @@ public class LemonadeGame {
     }
 
     private void purchase() {
-        System.out.println("Lemons cost $1.00 each. Sugar costs $0.50 per cup.");
+        System.out.printf("Lemons cost %s each. Sugar costs %s per cup.%n",
+                money(stand.lemonMarket().priceCents()), money(stand.sugarMarket().priceCents()));
         while (true) {
             int lemons = readQuantity("How many lemons do you want to buy? ", 0);
             int sugar = readQuantity("How many cups of sugar do you want to buy? ", 0);
@@ -200,6 +207,21 @@ public class LemonadeGame {
             System.out.println("Tasty lemonade! Your recipe is close to the ideal. Customers: 1.25x.");
         } else {
             System.out.println("Your recipe is ordinary. Try balancing sugar, lemon juice, and water. Customers: 1.0x.");
+        }
+    }
+
+    private void showMarketPrice(Ingredient ingredient, IngredientMarket market, int day) {
+        System.out.printf("Today's price of %s is %s per %s.",
+                ingredient.displayName(), money(market.priceCents()), ingredient.unit());
+        if (day == 1) {
+            System.out.println(" This is the starting market price.");
+        } else if (market.priceCents() == market.previousPriceCents()) {
+            System.out.printf(" This is unchanged from yesterday's price of %s.%n",
+                    money(market.previousPriceCents()));
+        } else {
+            String direction = market.priceCents() > market.previousPriceCents() ? "up" : "down";
+            System.out.printf(" This is %s from yesterday's price of %s.%n",
+                    direction, money(market.previousPriceCents()));
         }
     }
 }

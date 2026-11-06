@@ -5,6 +5,8 @@ public class LemonadeStand {
     public static final long DAILY_RENT_CENTS = 500;
     public static final long MAX_PRICE_CENTS = Long.MAX_VALUE / 750;
     private final CashAccount account;
+    private final IngredientMarket lemonMarket;
+    private final IngredientMarket sugarMarket;
     private int lemons;
     private int sugar;
     private int water; // for updates
@@ -17,10 +19,19 @@ public class LemonadeStand {
     }
 
     public LemonadeStand(CashAccount account) {
+        this(account, new IngredientMarket(100), new IngredientMarket(50));
+    }
+
+    public LemonadeStand(CashAccount account, IngredientMarket lemonMarket, IngredientMarket sugarMarket) {
         if (account == null) {
             throw new IllegalArgumentException("An account is required.");
         }
+        if (lemonMarket == null || sugarMarket == null) {
+            throw new IllegalArgumentException("Lemon and sugar markets are required.");
+        }
         this.account = account;
+        this.lemonMarket = lemonMarket;
+        this.sugarMarket = sugarMarket;
     }
 
     public long cashCents() { return account.balanceCents(); }
@@ -29,6 +40,8 @@ public class LemonadeStand {
     public int pitchers() { return pitchers; }
     public long priceCents() { return priceCents; }
     public Recipe recipe() { return recipe; }
+    public IngredientMarket lemonMarket() { return lemonMarket; }
+    public IngredientMarket sugarMarket() { return sugarMarket; }
 
     public void payRent() {
         account.chargeExpense(DAILY_RENT_CENTS);
@@ -41,7 +54,8 @@ public class LemonadeStand {
     public void purchase(int lemonCount, int sugarCount) {
         if (lemonCount < 0 || sugarCount < 0)
             throw new IllegalArgumentException("Purchase quantities cannot be negative.");
-        long cost = lemonCount * 100L + sugarCount * 50L;
+        long cost = (long) lemonCount * lemonMarket.priceCents()
+                + (long) sugarCount * sugarMarket.priceCents();
         if (lemonCount > Integer.MAX_VALUE - lemons || sugarCount > Integer.MAX_VALUE - sugar) {
             throw new IllegalArgumentException("That purchase would exceed the maximum ingredient inventory.");
         }

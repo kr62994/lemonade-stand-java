@@ -435,4 +435,72 @@ class LemonadeStandTest {
         assertEquals(30, result.customers());
         assertEquals(8, result.cupsSold());
     }
+
+    @Test
+    void purchasesUseBothCurrentMarketPrices() {
+        IngredientMarket lemons = new IngredientMarket(100, new java.util.Random(1));
+        IngredientMarket sugar = new IngredientMarket(50, new java.util.Random(2));
+        CashAccount account = new CashAccount(10000);
+        LemonadeStand marketStand = new LemonadeStand(account, lemons, sugar);
+        lemons.advanceDay();
+        sugar.advanceDay();
+        long firstCost = 3L * lemons.priceCents() + 2L * sugar.priceCents();
+        marketStand.purchase(3, 2);
+        assertEquals(10000 - firstCost, account.balanceCents());
+        assertEquals(3, marketStand.lemons());
+        assertEquals(2, marketStand.sugar());
+        lemons.advanceDay();
+        sugar.advanceDay();
+        long secondCost = 2L * lemons.priceCents() + 4L * sugar.priceCents();
+        marketStand.purchase(2, 4);
+        assertEquals(10000 - firstCost - secondCost, account.balanceCents());
+        assertEquals(5, marketStand.lemons());
+        assertEquals(6, marketStand.sugar());
+    }
+
+    @Test
+    void purchasesDoNotAdvanceMarkets() {
+        stand.purchase(1, 1);
+        stand.purchase(1, 1);
+        assertEquals(100, stand.lemonMarket().priceCents());
+        assertEquals(50, stand.sugarMarket().priceCents());
+        assertEquals(9700, stand.cashCents());
+    }
+
+    @Test
+    void marketChangesDoNotAlterCashOrExistingStock() {
+        stand.purchase(3, 1);
+        stand.lemonMarket().advanceDay();
+        stand.sugarMarket().advanceDay();
+        assertEquals(9650, stand.cashCents());
+        assertEquals(3, stand.lemons());
+        assertEquals(1, stand.sugar());
+    }
+
+    @Test
+    void rejectsMissingMarkets() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new LemonadeStand(new CashAccount(10000), null, new IngredientMarket(50)));
+        assertThrows(IllegalArgumentException.class,
+                () -> new LemonadeStand(new CashAccount(10000), new IngredientMarket(100), null));
+    }
+
+    @Test
+    void extremeMarketPricesAndQuantitiesCannotWrapPurchaseCost() {
+        IngredientMarket lemons = new IngredientMarket(Integer.MAX_VALUE);
+        IngredientMarket sugar = new IngredientMarket(Integer.MAX_VALUE);
+        LemonadeStand expensiveStand = new LemonadeStand(new CashAccount(10000), lemons, sugar);
+        assertThrows(IllegalArgumentException.class,
+                () -> expensiveStand.purchase(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        assertEquals(10000, expensiveStand.cashCents());
+        assertEquals(0, expensiveStand.lemons());
+        assertEquals(0, expensiveStand.sugar());
+
+        CashAccount account = new CashAccount(Long.MAX_VALUE);
+        LemonadeStand richStand = new LemonadeStand(account, lemons, sugar);
+        richStand.purchase(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        assertEquals(Long.MAX_VALUE - 2L * Integer.MAX_VALUE * Integer.MAX_VALUE, account.balanceCents());
+        assertEquals(Integer.MAX_VALUE, richStand.lemons());
+        assertEquals(Integer.MAX_VALUE, richStand.sugar());
+    }
 }
