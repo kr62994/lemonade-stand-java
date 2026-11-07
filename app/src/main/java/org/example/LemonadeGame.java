@@ -50,17 +50,17 @@ public class LemonadeGame {
             try {
                 BigDecimal dollars = new BigDecimal(input);
                 BigDecimal maximum = BigDecimal.valueOf(LemonadeStand.MAX_PRICE_CENTS, 2);
-                if (dollars.scale() <= 2 && dollars.compareTo(BigDecimal.ZERO) > 0
+                if (dollars.scale() <= 2 && dollars.compareTo(BigDecimal.ZERO) >= 0
                         && dollars.compareTo(maximum) <= 0) {
                     long cents = dollars.movePointRight(2).longValueExact();
-                    if (cents >= 1) {
+                    if (cents >= 0) {
                         return cents;
                     }
                 }
             } catch (NumberFormatException | ArithmeticException exception) {
                 // keep the loop
             }
-            System.out.printf("Enter a dollar amount from $0.01 to %s with at most two decimal places.%n",
+            System.out.printf("Enter a dollar amount from $0.00 to %s with at most two decimal places.%n",
                     money(LemonadeStand.MAX_PRICE_CENTS));
         }
     }
@@ -71,6 +71,8 @@ public class LemonadeGame {
 
     public void run() {
         System.out.println("Welcome to My Lemonade Stand!");
+        System.out.printf("Free lemonade always sells out. At %s per cup or more, nobody buys lemonade.%n",
+                money(LemonadeStand.DEMAND_CUTOFF_CENTS));
         try {
             for (int day = 1; ; day++) {
                 stand.payRent();
@@ -184,7 +186,14 @@ public class LemonadeGame {
         System.out.printf("%nDay %d: Selling Phase%n", day);
         System.out.printf("%d customers visited. You sold %d cups for %s.%n",
                 result.customers(), result.cupsSold(), money(result.revenueCents()));
-        showRecipeFeedback();
+        if (stand.priceCents() == 0) {
+            System.out.println("Free lemonade! Your entire stock was given away for no revenue.");
+        } else {
+            showRecipeFeedback();
+            if (stand.priceCents() >= LemonadeStand.DEMAND_CUTOFF_CENTS) {
+                System.out.println("Your price is too high. Nobody buys lemonade at this price.");
+            }
+        }
         System.out.printf("Customers without lemonade: %d.%n", result.customers() - result.cupsSold());
         System.out.printf("Discarded lemonade: %d pitchers + %d cups.%n",
                 result.wastedCups() / LemonadeStand.CUPS_PER_PITCHER,

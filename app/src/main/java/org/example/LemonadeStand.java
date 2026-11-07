@@ -4,6 +4,7 @@ public class LemonadeStand {
     public static final int CUPS_PER_PITCHER = 8;
     public static final long DAILY_RENT_CENTS = 500;
     public static final long MAX_PRICE_CENTS = Long.MAX_VALUE / 750;
+    public static final long DEMAND_CUTOFF_CENTS = 1000;
     private final CashAccount account;
     private final IngredientMarket lemonMarket;
     private final IngredientMarket sugarMarket;
@@ -70,8 +71,8 @@ public class LemonadeStand {
     }
 
     public void setPrice(long cents) {
-        if (cents < 1 || cents > MAX_PRICE_CENTS)
-            throw new IllegalArgumentException("Price must be from 1 to " + MAX_PRICE_CENTS + " cents.");
+        if (cents < 0 || cents > MAX_PRICE_CENTS)
+            throw new IllegalArgumentException("Price must be from 0 to " + MAX_PRICE_CENTS + " cents.");
         priceCents = cents;
     }
 
@@ -91,8 +92,15 @@ public class LemonadeStand {
     public SalesResult sell(int customers) {
         if (customers < 1 || customers > 500)
             throw new IllegalArgumentException("Customer count must be between 1 and 500.");
-        customers = (int) (customers * recipe.customerMultiplier());
         int cups = pitchers * CUPS_PER_PITCHER;
+        if (priceCents == 0) {
+            customers = cups;
+        } else if (priceCents >= DEMAND_CUTOFF_CENTS) {
+            customers = 0;
+        } else {
+            double demand = (DEMAND_CUTOFF_CENTS - priceCents) / (double) DEMAND_CUTOFF_CENTS;
+            customers = (int) Math.round(customers * recipe.customerMultiplier() * demand);
+        }
         int sold = Math.min(cups, customers);
         long revenue = sold * priceCents;
         account.deposit(revenue);

@@ -62,14 +62,14 @@ class LemonadeStandTest {
     }
 
     @Test
-    void rejectsPricesThatCouldOverflowDailyRevenue() {
+    void rejectsPricesBeyondTheSupportedInputRange() {
         assertThrows(IllegalArgumentException.class, () -> stand.setPrice(LemonadeStand.MAX_PRICE_CENTS + 1));
         assertThrows(IllegalArgumentException.class, () -> stand.setPrice(Long.MAX_VALUE));
         assertEquals(100, stand.priceCents());
     }
 
     @Test
-    void maximumPriceCanProduceFiveHundredSalesWithoutOverflow() {
+    void maximumSupportedPriceProducesNoSalesOrRevenue() {
         CashAccount emptyAccount = new CashAccount(9450);
         LemonadeStand salesStand = new LemonadeStand(emptyAccount);
         salesStand.setRecipe(new Recipe(1, 1, 1));
@@ -77,10 +77,11 @@ class LemonadeStandTest {
         salesStand.makePitchers(63);
         salesStand.setPrice(LemonadeStand.MAX_PRICE_CENTS);
         SalesResult result = salesStand.sell(500);
-        assertEquals(500, result.cupsSold());
-        assertEquals(500 * LemonadeStand.MAX_PRICE_CENTS, result.revenueCents());
+        assertEquals(0, result.customers());
+        assertEquals(0, result.cupsSold());
+        assertEquals(0, result.revenueCents());
         assertEquals(result.revenueCents(), emptyAccount.balanceCents());
-        assertEquals(4, result.wastedCups());
+        assertEquals(504, result.wastedCups());
     }
 
     @Test
@@ -144,7 +145,7 @@ class LemonadeStandTest {
         assertEquals(9650, account.balanceCents());
         otherStand.makePitchers(1);
         otherStand.sell(8);
-        assertEquals(10450, account.balanceCents());
+        assertEquals(10350, account.balanceCents());
         assertEquals(account.balanceCents(), otherStand.cashCents());
     }
 
@@ -211,8 +212,7 @@ class LemonadeStandTest {
     }
 
     @Test
-    void rejectsZeroAndNegativePrices() {
-        assertThrows(IllegalArgumentException.class, () -> stand.setPrice(0));
+    void rejectsNegativePrices() {
         assertThrows(IllegalArgumentException.class, () -> stand.setPrice(-1));
         assertEquals(100, stand.priceCents());
     }
@@ -273,17 +273,17 @@ class LemonadeStandTest {
         stand.purchase(50, 40);
         stand.makePitchers(8);
         SalesResult result = stand.sell(30);
-        assertEquals(30, result.customers());
-        assertEquals(30, result.cupsSold());
-        assertEquals(3000, result.revenueCents());
-        assertEquals(34, result.wastedCups());
-        assertEquals(6000, stand.cashCents());
+        assertEquals(27, result.customers());
+        assertEquals(27, result.cupsSold());
+        assertEquals(2700, result.revenueCents());
+        assertEquals(37, result.wastedCups());
+        assertEquals(5700, stand.cashCents());
         assertEquals(10, stand.lemons());
         assertEquals(24, stand.sugar());
         assertEquals(0, stand.pitchers());
         SalesResult nextDay = stand.sell(1);
         assertEquals(0, nextDay.cupsSold());
-        assertEquals(6000, stand.cashCents());
+        assertEquals(5700, stand.cashCents());
     }
 
     @Test
@@ -379,7 +379,7 @@ class LemonadeStandTest {
         Recipe[] recipes = {new Recipe(32, 0, 0), new Recipe(0, 0, 0),
                 new Recipe(1, 0, 0), new Recipe(8, 1, 0),
                 new Recipe(6, 1, 0), new Recipe(3, 1, 0)};
-        int[] expectedCustomers = {0, 2, 10, 25, 30, 20};
+        int[] expectedCustomers = {0, 2, 9, 23, 27, 18};
         for (int i = 0; i < recipes.length; i++) {
             LemonadeStand salesStand = new LemonadeStand();
             salesStand.purchase(96, 8);
@@ -398,9 +398,9 @@ class LemonadeStandTest {
     }
 
     @Test
-    void fractionalCustomerCountsRoundDownIncludingToZero() {
+    void fractionalCustomerCountsRoundToNearestWholeNumber() {
         stand.setRecipe(new Recipe(0, 0, 0));
-        assertEquals(0, stand.sell(9).customers());
+        assertEquals(1, stand.sell(9).customers());
         stand.setRecipe(new Recipe(1, 0, 0));
         assertEquals(1, stand.sell(3).customers());
         stand.setRecipe(new Recipe(8, 1, 0));
@@ -410,20 +410,20 @@ class LemonadeStandTest {
     }
 
     @Test
-    void maximumBoostAndPriceCannotOverflowDailyRevenue() {
+    void recipeBonusAndHalfPriceDemandCombineForLargeCrowds() {
         CashAccount account = new CashAccount(100000);
         LemonadeStand salesStand = new LemonadeStand(account);
         salesStand.setRecipe(new Recipe(6, 1, 0));
         salesStand.purchase(564, 94);
         salesStand.makePitchers(94);
         account.pay(account.balanceCents());
-        salesStand.setPrice(LemonadeStand.MAX_PRICE_CENTS);
+        salesStand.setPrice(500);
         SalesResult result = salesStand.sell(500);
-        assertEquals(750, result.customers());
-        assertEquals(750, result.cupsSold());
-        assertEquals(750 * LemonadeStand.MAX_PRICE_CENTS, result.revenueCents());
+        assertEquals(375, result.customers());
+        assertEquals(375, result.cupsSold());
+        assertEquals(187500, result.revenueCents());
         assertEquals(result.revenueCents(), salesStand.cashCents());
-        assertEquals(2, result.wastedCups());
+        assertEquals(377, result.wastedCups());
     }
 
     @Test
@@ -432,7 +432,7 @@ class LemonadeStandTest {
         stand.makePitchers(1);
         stand.setRecipe(new Recipe(6, 1, 0));
         SalesResult result = stand.sell(20);
-        assertEquals(30, result.customers());
+        assertEquals(27, result.customers());
         assertEquals(8, result.cupsSold());
     }
 
@@ -502,5 +502,111 @@ class LemonadeStandTest {
         assertEquals(Long.MAX_VALUE - 2L * Integer.MAX_VALUE * Integer.MAX_VALUE, account.balanceCents());
         assertEquals(Integer.MAX_VALUE, richStand.lemons());
         assertEquals(Integer.MAX_VALUE, richStand.sugar());
+    }
+
+    @Test
+    void freeLemonadeSellsAllStockRegardlessOfRecipeOrBaseCrowd() {
+        Recipe[] recipes = {new Recipe(0, 0, 8), new Recipe(32, 0, 0), new Recipe(6, 1, 0)};
+        for (Recipe recipe : recipes) {
+            LemonadeStand freeStand = new LemonadeStand(new CashAccount(100000));
+            freeStand.purchase(320, 10);
+            freeStand.setRecipe(recipe);
+            freeStand.makePitchers(10);
+            long cash = freeStand.cashCents();
+            freeStand.setPrice(0);
+            SalesResult result = freeStand.sell(1);
+            assertEquals(80, result.customers());
+            assertEquals(80, result.cupsSold());
+            assertEquals(0, result.revenueCents());
+            assertEquals(0, result.wastedCups());
+            assertEquals(cash, freeStand.cashCents());
+            assertEquals(0, freeStand.pitchers());
+        }
+    }
+
+    @Test
+    void freeLemonadeCanGiveAwayMoreThanTheUsualCustomerLimit() {
+        LemonadeStand freeStand = new LemonadeStand(new CashAccount(Long.MAX_VALUE));
+        int maximumPitchers = Integer.MAX_VALUE / LemonadeStand.CUPS_PER_PITCHER;
+        freeStand.makePitchers(maximumPitchers);
+        freeStand.setPrice(0);
+        SalesResult result = freeStand.sell(1);
+        assertEquals(maximumPitchers * 8, result.cupsSold());
+        assertEquals(0, result.wastedCups());
+        assertEquals(0, result.revenueCents());
+        assertEquals(Long.MAX_VALUE, freeStand.cashCents());
+    }
+
+    @Test
+    void freeLemonadeWithoutStockProducesNoSales() {
+        stand.setPrice(0);
+        SalesResult result = stand.sell(500);
+        assertEquals(0, result.customers());
+        assertEquals(0, result.cupsSold());
+        assertEquals(0, result.revenueCents());
+        assertEquals(0, result.wastedCups());
+    }
+
+    @Test
+    void cutoffAndHigherPricesAlwaysProduceZeroSalesEvenWithPerfectRecipe() {
+        for (long price : new long[] {LemonadeStand.DEMAND_CUTOFF_CENTS,
+                LemonadeStand.DEMAND_CUTOFF_CENTS + 1, 1000000, LemonadeStand.MAX_PRICE_CENTS}) {
+            stand.setRecipe(new Recipe(6, 1, 0));
+            stand.purchase(6, 1);
+            stand.makePitchers(1);
+            stand.setPrice(price);
+            long cash = stand.cashCents();
+            SalesResult result = stand.sell(500);
+            assertEquals(0, result.customers());
+            assertEquals(0, result.cupsSold());
+            assertEquals(0, result.revenueCents());
+            assertEquals(8, result.wastedCups());
+            assertEquals(cash, stand.cashCents());
+            assertEquals(0, stand.pitchers());
+        }
+    }
+
+    @Test
+    void halfCutoffPriceHalvesOrdinaryRecipeDemandAndRoundsHalvesUp() {
+        stand.setPrice(500);
+        assertEquals(50, stand.sell(100).customers());
+        assertEquals(3, stand.sell(5).customers());
+    }
+
+    @Test
+    void roundsOnceAfterCombiningRecipeAndPriceMultipliers() {
+        stand.setRecipe(new Recipe(6, 1, 0));
+        stand.setPrice(500);
+        assertEquals(2, stand.sell(2).customers());
+        stand.setRecipe(new Recipe(8, 1, 0));
+        assertEquals(3, stand.sell(4).customers());
+    }
+
+    @Test
+    void pricesJustBelowCutoffCanStillSellOrRoundDemandToZero() {
+        stand.setPrice(999);
+        assertEquals(1, stand.sell(500).customers());
+        assertEquals(0, stand.sell(499).customers());
+    }
+
+    @Test
+    void paidNoWaterRecipeStillGetsNoCustomers() {
+        stand.setRecipe(new Recipe(32, 0, 0));
+        stand.setPrice(1);
+        assertEquals(0, stand.sell(500).customers());
+    }
+
+    @Test
+    void higherPaidPricesNeverIncreaseAttendanceForSameRecipeAndBaseCrowd() {
+        stand.setRecipe(new Recipe(6, 1, 0));
+        int previousCustomers = 750;
+        for (int price = 1; price <= LemonadeStand.DEMAND_CUTOFF_CENTS; price++) {
+            stand.setPrice(price);
+            int customers = stand.sell(500).customers();
+            assertTrue(customers <= previousCustomers);
+            assertTrue(customers >= 0);
+            previousCustomers = customers;
+        }
+        assertEquals(0, previousCustomers);
     }
 }
